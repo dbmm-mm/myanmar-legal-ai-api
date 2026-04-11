@@ -68,14 +68,22 @@ def search_qdrant(query_embedding, limit=5):
         payload = {
             "vector": query_embedding,
             "limit": limit,
-            "with_payload": True
+            "with_payload": True,
+            "score_threshold": 0.0  # Accept all results, no minimum threshold
         }
+        
+        print(f"Searching Qdrant with URL: {url}")
+        print(f"API Key present: {bool(QDRANT_API_KEY)}")
         
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         
+        print(f"Qdrant response status: {response.status_code}")
+        
         if response.status_code == 200:
             results = response.json()
-            return results.get('result', [])
+            result_list = results.get('result', [])
+            print(f"Qdrant returned {len(result_list)} results")
+            return result_list
         else:
             print(f"Search error: {response.status_code} - {response.text}")
             return []
@@ -169,6 +177,12 @@ def search():
         
         # Search Qdrant
         search_results = search_qdrant(question_embedding, limit)
+        
+        # Debug: Log search results
+        print(f"Search results count: {len(search_results)}")
+        if search_results:
+            for i, result in enumerate(search_results):
+                print(f"  Result {i+1}: score={result.get('score')}, title={result.get('payload', {}).get('title')}")
         
         if not search_results:
             return jsonify({
